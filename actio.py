@@ -8,8 +8,8 @@ def Action (data):
     user_data = data.lower()
 
     if "what is your name" in user_data :
-        text_to_speech.text_to_speech("My name is Virtual Assitant")
-        return "My name is Virtual Assitant"
+        text_to_speech.text_to_speech("My name is Virtual Assistant")
+        return "My name is Virtual Assistant"
 
     elif "hello" in user_data or "hye" in  user_data :
         text_to_speech.text_to_speech("hey , sir how can i help you")
