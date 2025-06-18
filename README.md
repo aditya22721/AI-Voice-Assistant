@@ -69,6 +69,8 @@ Here is a preview of the AI Assistant GUI:
 
 ![AI Assistant GUI](assistant_gui.png)
 
+
+
 ## 📄 License
 
 This project is open-source and available under the [MIT License](LICENSE).
