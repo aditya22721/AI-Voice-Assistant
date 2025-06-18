@@ -67,7 +67,7 @@ cd AI-Voice-Assistant
 📸 Screenshot
 Here is a preview of the AI Assistant GUI:
 
-![AI Assistant GUI](assitant_gui.png)
+![AI Assistant GUI](assistant_gui.png)
 
 ## 📄 License
 
