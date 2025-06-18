@@ -69,3 +69,13 @@ Here is a preview of the AI Assistant GUI:
 
 ![AI Assistant GUI]()
 
+## 📄 License
+
+This project is open-source and available under the [MIT License](LICENSE).
+
+---
+
+## 🙋‍♂️ Author
+
+[**Aditya Chaubey**](https://github.com/aditya22721)
+
