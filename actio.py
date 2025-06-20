@@ -2,6 +2,7 @@ import text_to_speech
 import speech_to_text
 import datetime
 import webbrowser
+import knowledge
 import weather
 
 def Action (data):
@@ -49,6 +50,28 @@ def Action (data):
         ans = weather.weather()
         text_to_speech.text_to_speech(ans)
         return ans
+    elif "tell me a joke" in user_data:
+        joke = knowledge.tell_joke()
+        text_to_speech.text_to_speech(joke)
+        return joke
+
+    elif "tell me a fact" in user_data:
+        fact = knowledge.tell_fact()
+        text_to_speech.text_to_speech(fact)
+        return fact
+
+    elif "what is" in user_data or "who is" in user_data or "tell me about" in user_data:
+        topic = (
+            user_data.replace("what is", "")
+            .replace("who is", "")
+            .replace("tell me about", "")
+            .strip()
+        )
+        info = knowledge.get_knowledge(topic)
+        text_to_speech.text_to_speech(info)
+        return info
+    
+
 
 
 
