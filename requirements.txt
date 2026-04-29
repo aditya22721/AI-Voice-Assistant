@@ -2,3 +2,39 @@ pyttsx3
 SpeechRecognition
 requests-html
 pillow
+
+user data :
+#!/bin/bash
+apt-get update
+apt-get upgrade
+apt-get install -y nginx
+systemctl start nginx
+systemctl enable nginx
+apt-get install -y git
+curl -sL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+apt-get install -y nodejs
+git clone https://github.com/Debdotta26/aws_ass.git
+cd aws_ass
+npm install
+node index.js
+
+8 -> 1
+    git init
+    git config --global user.name ""
+    git config --global user.email ""
+    git add .
+    git remote
+    git remote add origin repolink
+    git branch -M main
+    git push -u origin main
+ -> 2
+    git clone https://github.com/Debdotta26/aws_ass.git
+    cd aws
+    pwd
+    cd Debdotta26
+    ls
+    cd aws_ass
+    git commit -m "updating files"
+    git push
+    git pull origin main
+    git add .
