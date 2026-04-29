@@ -38,3 +38,11 @@ node index.js
     git push
     git pull origin main
     git add .
+
+7 :
+    sudo apt-get update
+    sudo apt-get upgrade
+    sudo apt-get install -y nginx
+    cd ..
+    cd /var/www/html
+    sudo chmod 777 /var/www/html
