@@ -1,88 +1,51 @@
-# AI-Voice-Assistant
-A voice-activated AI assistant with GUI using Python, speech recognition, and web integration.
-# 🧠 AI Voice Assistant
+# AI Voice Chatbot
 
-A Python-based voice-activated virtual assistant with a graphical user interface (GUI). It responds to voice or text input and performs tasks like telling jokes, sharing facts, fetching knowledge from Wikipedia, reporting the weather, opening websites, and more—all using speech synthesis.
+A Python Tkinter chatbot for daily conversation. You can type messages or use your microphone, and the assistant can answer open-ended questions through the Gemini API.
 
+## Features
 
+- Chat-style GUI built with Tkinter
+- Text input and microphone input
+- Text-to-speech replies
+- API-backed daily conversation
+- Local commands for time, weather, jokes, facts, Google, YouTube, and music
+- Conversation reset with `clear chat`, `reset chat`, or the Clear button
 
----
+## Setup
 
-## 💡 Features
+Install dependencies:
 
-Features
-- 🎙️ Voice input using microphone
-- 🗣️ Text-to-speech responses
-- 🌦️ Weather updates
-- 🌐 Opens websites like Google, YouTube, Gaana
-- ⏰ Tells current time
-- 🧠 Answers general knowledge questions via Wikipedia
-- 😂 Tells programming jokes using pyjokes
-- 📚 Shares fun facts
-- 💬 Greets user and responds to basic inputs
-- 🖼️ GUI built with Tkinter and image display using Pillow
-
-🛠️ Technologies Used
-- Python 3
-- Tkinter – GUI interface
-- SpeechRecognition – speech-to-text
-- pyttsx3 – text-to-speech
-- pyjokes – for jokes
-- wikipedia – for knowledge queries
-- requests-html – for weather scraping
-- Pillow – image handling in GUI
-
-🚀 How to Run
-git clone https://github.com/aditya22721/AI-Voice-Assistant.git
-cd AI-Voice-Assistant
+```bash
 pip install -r requirements.txt
+```
+
+Set your API key before running the app.
+
+PowerShell:
+
+```powershell
+$env:GEMINI_API_KEY="your_api_key_here"
+```
+
+Optional settings:
+
+```powershell
+$env:GEMINI_MODEL="gemini-2.0-flash"
+$env:GEMINI_API_BASE="https://generativelanguage.googleapis.com/v1beta"
+```
+
+Run the chatbot:
+
+```bash
 python gui.py
+```
 
+## Example Messages
 
-
-📁 File Structure
-AI-Voice-Assistant/
-├── action.py             # Handles voice commands and logic
-├── gui.py                # Main GUI interface
-├── knowledge.py          # Jokes, facts, and Wikipedia queries
-├── speech_to_text.py     # Converts microphone input to text
-├── text_to_speech.py     # Converts text to speech
-├── weather.py            # Scrapes weather info
-├── download (1).jpg      # Image used in the GUI
-├── requirements.txt      # Required packages
-└── README.md             # This file
-
-
-
-🧪 Sample Commands
-- "What is your name?"
+- "How was your day?"
+- "Explain photosynthesis simply"
+- "Give me ideas for a weekend project"
 - "Tell me a joke"
-- "Tell me a fact"
-- "What is Python?"
-- "Open Google"
-- "What's the weather?"
-- "Play music"
-- "Good morning"
-
-
-
-
-
-📸 Screenshot
-Here is a preview of the AI Assistant GUI:
-
-![AI Assistant GUI](assistant_gui.png)
-
-
-
-
-## 📄 License
-
-This project is open-source and available under the [MIT License](LICENSE).
-
----
-
-## 🙋‍♂️ Author
-
-[**Aditya Chaubey**](https://github.com/aditya22721)
-
+- "What is the time now?"
+- "Open YouTube"
+- "Reset chat"

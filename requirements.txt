@@ -1,61 +1,9 @@
 pyttsx3
 SpeechRecognition
-requests-html
+requests
+beautifulsoup4
+lxml
 pillow
-
-user data :
-#!/bin/bash
-apt-get update
-apt-get upgrade
-apt-get install -y nginx
-systemctl start nginx
-systemctl enable nginx
-apt-get install -y git
-curl -sL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-apt-get install -y nodejs
-git clone https://github.com/Debdotta26/aws_ass.git
-cd aws_ass
-npm install
-node index.js
-
-8 -> 1
-    git init
-    git config --global user.name ""
-    git config --global user.email ""
-    git add .
-    git remote
-    git remote add origin repolink
-    git branch -M main
-    git push -u origin main
- -> 2
-    git clone https://github.com/Debdotta26/aws_ass.git
-    cd aws
-    pwd
-    cd Debdotta26
-    ls
-    cd aws_ass
-    git commit -m "updating files"
-    git push
-    git pull origin main
-    git add .
-
-7 :
-    sudo apt-get update
-    sudo apt-get upgrade
-    sudo apt-get install -y nginx
-    cd ..
-    cd /var/www/html
-    sudo chmod 777 /var/www/html
-12 :
-location / {
-    # First attempt to serve request as file, then
-    # as directory, then fall back to displaying a 404.
- #   try_files $uri $uri/ =404;
-
-    proxy_pass http://localhost:4000;
-    proxy_http_version 1.1;
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection 'Upgrade';
-    proxy_set_header Host $host;
-    proxy_cache_bypass $http_upgrade;
-}
+wikipedia
+pyjokes
+pyaudio
