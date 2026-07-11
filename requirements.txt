@@ -1,9 +1,8 @@
-pyttsx3
-SpeechRecognition
+# requirements.txt
+google-generativeai
+Pillow
+geocoder
+geopy
 requests
-beautifulsoup4
-lxml
-pillow
-wikipedia
 pyjokes
-pyaudio
+wik

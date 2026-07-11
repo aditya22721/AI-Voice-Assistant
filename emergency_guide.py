@@ -1,5 +1,4 @@
-"""Emergency first aid guidance for various medical situations"""
-
+# emergency_guide.py
 def call_emergency_reminder():
     return "⚠️ IMPORTANT: Call emergency services (911/112/999) immediately if this is a life-threatening emergency!"
 
@@ -225,3 +224,22 @@ ELECTRIC SHOCK:
 5. Check for breathing and pulse
 6. If not breathing, start CPR
 7. Treat for burns"""
+
+def drowning():
+    return f"""{call_emergency_reminder()}
+
+DROWNING:
+1. Call emergency services immediately
+2. Remove person from water if safe to do so
+3. Check for breathing and pulse
+4. If not breathing, start CPR immediately
+5. Continue until emergency services arrive
+6. Even if person seems fine, seek medical attention"""
+
+def nosebleed():
+    return f"""NOSEBLEED:
+1. Sit upright and lean forward (do NOT lean back)
+2. Pinch the soft part of the nose for 10-15 minutes
+3. Apply ice pack to bridge of nose
+4. If bleeding doesn't stop after 20 minutes, seek medical attention
+5. Do NOT blow nose for several hours after bleeding stops"""
