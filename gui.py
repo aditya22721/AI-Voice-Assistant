@@ -1,8 +1,11 @@
-# gui.py (Updated)
+# gui.py (Updated with better location handling)
 from tkinter import *
 from tkinter import ttk
 import threading
 import geocoder
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from PIL import Image, ImageTk
 
@@ -16,27 +19,68 @@ root.config(bg="#f5f7fb")
 root.minsize(520, 620)
 
 current_location = None
+location_update_counter = 0
 
 def get_location():
+    """Enhanced location detection with multiple methods"""
     try:
+        # Method 1: IP-based location
         g = geocoder.ip('me')
         if g.latlng:
             return {
                 'lat': g.latlng[0],
                 'lng': g.latlng[1],
                 'address': g.address,
-                'city': g.city
+                'city': g.city,
+                'state': g.state,
+                'country': g.country
             }
     except:
         pass
+    
+    # Method 2: Try with ipapi.co directly
+    try:
+        response = requests.get('https://ipapi.co/json/', timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            if data.get('latitude') and data.get('longitude'):
+                return {
+                    'lat': data.get('latitude'),
+                    'lng': data.get('longitude'),
+                    'address': f"{data.get('city')}, {data.get('country_name')}",
+                    'city': data.get('city'),
+                    'state': data.get('region'),
+                    'country': data.get('country_name')
+                }
+    except:
+        pass
+    
     return None
 
 def update_location_display():
+    """Update location display with better error handling"""
+    global location_update_counter
+    location_update_counter += 1
+    
     location = get_location()
     if location:
-        location_var.set(f"📍 {location.get('city', 'Unknown')}")
+        city = location.get('city', 'Unknown')
+        country = location.get('country', '')
+        if city and country:
+            location_var.set(f"📍 {city}, {country}")
+        elif city:
+            location_var.set(f"📍 {city}")
+        else:
+            location_var.set("📍 Location detected")
     else:
-        location_var.set("📍 Location unknown")
+        if location_update_counter < 3:
+            location_var.set("📍 Detecting location...")
+        else:
+            location_var.set("📍 Location unavailable")
+    
+    # Update every 30 seconds, but stop after 3 attempts if failed
+    if location_update_counter < 5:
+        root.after(30000, update_location_display)
 
 def add_message(sender, message):
     chat_box.config(state=NORMAL)
@@ -134,7 +178,7 @@ Label(
 
 Label(
     title_area,
-    text="Your Intelligent Assistant",
+    text="Your Intelligent Assistant - Powered by Free APIs",
     font=("Segoe UI", 10),
     bg="#c0392b",
     fg="#f5d6d6",
@@ -151,6 +195,21 @@ Label(
     font=("Segoe UI", 9),
     bg="#e8f0fe",
     fg="#1a73e8",
+).pack(side=LEFT)
+
+# API Status Display
+api_status_frame = Frame(root, bg="#e8f0fe", padx=10, pady=3)
+api_status_frame.pack(fill=X)
+
+import os
+api_type = os.getenv("USE_API", "huggingface").upper()
+api_status = f"🔌 API: {api_type} (FREE)"
+Label(
+    api_status_frame,
+    text=api_status,
+    font=("Segoe UI", 8),
+    bg="#e8f0fe",
+    fg="#2e7d32",
 ).pack(side=LEFT)
 
 # Emergency Warning Label
@@ -297,7 +356,7 @@ Label(
 add_message(
     "Bot",
     "Hello! I'm MediGuide - your intelligent assistant. 🚑\n\n"
-    "🌟 I can answer ANY question you have!\n"
+    "🌟 I can answer ANY question you have - FOR FREE!\n"
     "• Ask me about science, history, technology, health, relationships\n"
     "• Get weather updates, jokes, facts\n"
     "• Find nearby hospitals and emergency services\n"
@@ -313,10 +372,7 @@ add_message(
     "⚠️ For life-threatening emergencies, always call 911 first!"
 )
 
-def update_location():
-    update_location_display()
-    root.after(30000, update_location)
-
-update_location()
+# Start location update
+update_location_display()
 entry.focus()
 root.mainloop()

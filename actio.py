@@ -1,4 +1,4 @@
-# actio.py (Main logic - Updated)
+# actio.py (Complete - Using Free Hugging Face API)
 import datetime
 import json
 import os
@@ -9,17 +9,44 @@ import re
 import geocoder
 import requests
 from geopy.distance import geodesic
+import random
+import time
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 import knowledge
 import text_to_speech
 import weather
 import emergency_guide
 
-API_KEY = os.getenv("GEMINI_API_KEY")
+# ===== FREE API CONFIGURATION =====
+# Option 1: Hugging Face (100% FREE, no credit card required)
+# Get your free token at: https://huggingface.co/settings/tokens
+HF_API_KEY = os.getenv("HF_API_KEY")
+HF_MODEL = os.getenv("HF_MODEL", "microsoft/DialoGPT-medium")
+# Alternative models: "google/flan-t5-base", "google/flan-t5-large", "microsoft/DialoGPT-large"
+
+# Option 2: Gemini Free Tier (60 requests/min free)
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 API_BASE = os.getenv("GEMINI_API_BASE", "https://generativelanguage.googleapis.com/v1beta").rstrip("/")
 MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
 
+# Choose which API to use (set to 'huggingface' or 'gemini')
+USE_API = os.getenv("USE_API", "huggingface")
+
 EMERGENCY_MODE = False
+
+# Cache for API responses
+cache = {
+    'location': None,
+    'api_response': {},
+    'weather': {'data': None, 'timestamp': None},
+    'nearby_services': {'data': None, 'timestamp': None}
+}
+CACHE_DURATION = 300  # 5 minutes
+API_CALL_HISTORY = []  # For rate limiting
 
 SYSTEM_PROMPT_REGULAR = (
     "You are a friendly AI assistant named 'MediGuide' that can help with ANY topic. "
@@ -58,11 +85,145 @@ EMERGENCY_KEYWORDS = [
     "dental emergency", "nosebleed", "hypothermia", "heat stroke", "bites"
 ]
 
-def get_location():
+# ===== COMMON RESPONSES (No API needed) =====
+LOCAL_RESPONSES = {
+    "what is your name": "I'm MediGuide, your intelligent assistant!",
+    "who created you": "I was created to help people with their questions and emergencies.",
+    "what can you do": "I can help with emergencies, answer questions, tell jokes, check weather, find hospitals, and more!",
+    "how are you": "I'm functioning perfectly and ready to help you!",
+    "hi": "Hello! How can I help you today?",
+    "hello": "Hi there! What can I assist you with?",
+    "hey": "Hey! How can I help you?",
+    "good morning": "Good morning! How can I assist you today?",
+    "good evening": "Good evening! What can I help you with?",
+    "thank you": "You're welcome! Is there anything else I can help with?",
+    "thanks": "You're welcome! Let me know if you need anything else.",
+}
+
+# ===== FREE HUGGING FACE API =====
+def chat_with_huggingface(user_message, emergency_mode=False):
+    """Use Hugging Face's free inference API"""
+    if not HF_API_KEY:
+        return "Please set HF_API_KEY in your .env file. Get your free token at: https://huggingface.co/settings/tokens"
+    
+    # Rate limiting: 30 calls per minute for free tier
+    if not can_make_api_call(limit_per_minute=30):
+        return "I'm currently handling too many requests. Please wait a moment and try again."
+    
+    # Format conversation context
+    context = f"You are MediGuide, a helpful assistant. Answer: {user_message}"
+    
+    if emergency_mode:
+        context = f"You are an emergency assistant. Provide clear, calm instructions for: {user_message}"
+    
+    url = f"https://api-inference.huggingface.co/models/{HF_MODEL}"
+    headers = {"Authorization": f"Bearer {HF_API_KEY}"}
+    payload = {
+        "inputs": context,
+        "parameters": {
+            "max_new_tokens": 300,
+            "temperature": 0.8,
+            "top_p": 0.9,
+            "do_sample": True,
+        }
+    }
+    
+    try:
+        response = requests.post(url, headers=headers, json=payload, timeout=30)
+        
+        if response.status_code == 200:
+            result = response.json()
+            if isinstance(result, list) and len(result) > 0:
+                return result[0].get('generated_text', '').strip()
+            elif isinstance(result, dict):
+                return result.get('generated_text', '').strip()
+            else:
+                return str(result)
+        elif response.status_code == 503:
+            return "The AI model is loading. Please wait 10 seconds and try again."
+        else:
+            return f"API error: {response.status_code} - {response.text[:200]}"
+    except requests.exceptions.Timeout:
+        return "The request timed out. Please try again."
+    except Exception as e:
+        return f"Error with Hugging Face API: {str(e)}"
+
+# ===== FREE GEMINI API (Alternative) =====
+def chat_with_gemini(user_message, emergency_mode=False):
+    """Use Gemini's free tier (60 requests/min)"""
+    if not GEMINI_API_KEY:
+        return "Please set GEMINI_API_KEY in your .env file."
+    
+    if emergency_mode:
+        system_prompt = SYSTEM_PROMPT_EMERGENCY
+    else:
+        system_prompt = SYSTEM_PROMPT_REGULAR
+    
+    if conversation_history and conversation_history[0]["role"] == "user":
+        conversation_history[0]["parts"][0]["text"] = system_prompt
+
+    conversation_history.append({
+        "role": "user",
+        "parts": [{"text": user_message}],
+    })
+
+    payload = {
+        "contents": conversation_history[-10:],
+        "generationConfig": {
+            "temperature": 0.8,
+            "maxOutputTokens": 300,
+            "topP": 0.9,
+        },
+    }
+
+    request = urllib.request.Request(
+        f"{API_BASE}/models/{MODEL}:generateContent?key={GEMINI_API_KEY}",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            data = json.loads(response.read().decode("utf-8"))
+            parts = data["candidates"][0]["content"]["parts"]
+            answer = "".join(part.get("text", "") for part in parts).strip()
+            if not answer:
+                answer = "I got an empty response. Please try again."
+            
+            conversation_history.append({
+                "role": "model",
+                "parts": [{"text": answer}],
+            })
+            return answer
+    except Exception as error:
+        return f"Gemini API error: {str(error)}"
+
+# ===== RATE LIMITING =====
+def can_make_api_call(limit_per_minute=30):
+    """Check rate limit for free APIs"""
+    current_time = time.time()
+    # Remove calls older than 60 seconds
+    API_CALL_HISTORY[:] = [t for t in API_CALL_HISTORY if current_time - t < 60]
+    
+    if len(API_CALL_HISTORY) < limit_per_minute:
+        API_CALL_HISTORY.append(current_time)
+        return True
+    return False
+
+# ===== LOCATION FUNCTIONS =====
+def get_cached_location():
+    """Get location with caching"""
+    if cache['location'] and cache['location']['timestamp'] and \
+       (datetime.datetime.now() - cache['location']['timestamp']).seconds < CACHE_DURATION:
+        return cache['location']['data']
+    
     try:
         g = geocoder.ip('me')
         if g.latlng:
-            return {
+            location_data = {
                 'lat': g.latlng[0],
                 'lng': g.latlng[1],
                 'address': g.address,
@@ -70,11 +231,25 @@ def get_location():
                 'state': g.state,
                 'country': g.country
             }
+            cache['location'] = {
+                'data': location_data,
+                'timestamp': datetime.datetime.now()
+            }
+            return location_data
     except:
         pass
     return None
 
-def find_nearby_emergency_services(location, service_type="hospital"):
+get_location = get_cached_location
+
+def find_nearby_emergency_services(location, service_type="hospital", force_refresh=False):
+    """Find nearby services with caching"""
+    cache_key = f"{service_type}_{location.get('lat')}_{location.get('lng')}"
+    
+    if not force_refresh and cache['nearby_services']['data'] and cache['nearby_services']['timestamp']:
+        if (datetime.datetime.now() - cache['nearby_services']['timestamp']).seconds < CACHE_DURATION:
+            return cache['nearby_services']['data'].get(service_type)
+    
     if not location:
         return None
     
@@ -130,7 +305,14 @@ def find_nearby_emergency_services(location, service_type="hospital"):
                     'address': tags.get('addr:street', '') + ' ' + tags.get('addr:city', '')
                 })
             
-            return sorted(services, key=lambda x: x['distance'])
+            sorted_services = sorted(services, key=lambda x: x['distance'])
+            
+            if not cache['nearby_services']['data']:
+                cache['nearby_services']['data'] = {}
+            cache['nearby_services']['data'][service_type] = sorted_services
+            cache['nearby_services']['timestamp'] = datetime.datetime.now()
+            
+            return sorted_services
     except Exception as e:
         print(f"Error finding services: {e}")
     
@@ -219,6 +401,7 @@ def _handle_emergency(user_message, location=None):
     response += emergency_contact_response(location)
     response += "\n" + "="*50 + "\n\n"
     
+    # Emergency guide responses (no API calls needed)
     if "heart attack" in text or "chest pain" in text:
         response += emergency_guide.heart_attack()
     elif "choking" in text or "can't breathe" in text or "not breathing" in text:
@@ -265,64 +448,28 @@ def _handle_emergency(user_message, location=None):
     
     return _speak_and_return(response)
 
+def get_local_response(user_message):
+    """Check for local responses first"""
+    user_lower = user_message.lower().strip()
+    for key, response in LOCAL_RESPONSES.items():
+        if key in user_lower or user_lower == key:
+            return response
+    return None
+
 def _chat_with_api(user_message, emergency_mode=False):
+    """Main API router - uses free API"""
     global EMERGENCY_MODE
     
-    if not API_KEY:
-        return (
-            "I can chat about anything once you set your GEMINI_API_KEY. "
-            "In PowerShell, run: $env:GEMINI_API_KEY='your_api_key_here'"
-        )
-
-    if emergency_mode:
-        system_prompt = SYSTEM_PROMPT_EMERGENCY
-    else:
-        system_prompt = SYSTEM_PROMPT_REGULAR
+    # First check if we have a local response
+    local_response = get_local_response(user_message)
+    if local_response:
+        return local_response
     
-    if conversation_history and conversation_history[0]["role"] == "user":
-        conversation_history[0]["parts"][0]["text"] = system_prompt
-
-    conversation_history.append({
-        "role": "user",
-        "parts": [{"text": user_message}],
-    })
-
-    payload = {
-        "contents": conversation_history[-16:],
-        "generationConfig": {
-            "temperature": 0.8,
-            "maxOutputTokens": 500,
-            "topP": 0.9,
-        },
-    }
-
-    request = urllib.request.Request(
-        f"{API_BASE}/models/{MODEL}:generateContent?key={API_KEY}",
-        data=json.dumps(payload).encode("utf-8"),
-        headers={
-            "Content-Type": "application/json",
-        },
-        method="POST",
-    )
-
-    try:
-        with urllib.request.urlopen(request, timeout=30) as response:
-            data = json.loads(response.read().decode("utf-8"))
-            parts = data["candidates"][0]["content"]["parts"]
-            answer = "".join(part.get("text", "") for part in parts).strip()
-            if not answer:
-                answer = "I got an empty response from Gemini. Please try again."
-    except urllib.error.HTTPError as error:
-        details = error.read().decode("utf-8", errors="ignore")
-        answer = f"API request failed with status {error.code}. {details[:200]}"
-    except Exception as error:
-        answer = f"I could not reach Gemini right now: {error}"
-
-    conversation_history.append({
-        "role": "model",
-        "parts": [{"text": answer}],
-    })
-    return answer
+    # Route to the selected API
+    if USE_API.lower() == "gemini":
+        return chat_with_gemini(user_message, emergency_mode)
+    else:
+        return chat_with_huggingface(user_message, emergency_mode)
 
 def Action(data):
     global EMERGENCY_MODE
@@ -345,7 +492,7 @@ def Action(data):
     if EMERGENCY_MODE:
         return _speak_and_return("🚨 You are in emergency mode. Please describe the emergency or say 'exit emergency mode' to return to regular conversation.")
 
-    # Action commands
+    # Action commands - These don't use API
     if "open youtube" in user_data_lower:
         webbrowser.open("https://youtube.com/")
         return _speak_and_return("Opening YouTube.")
@@ -409,7 +556,7 @@ def Action(data):
         reset_conversation()
         return _speak_and_return("Chat reset. I'm ready to help with your health and safety needs.")
 
-    # Everything else goes to Gemini
+    # Everything else goes to AI API
     answer = _chat_with_api(user_data, EMERGENCY_MODE)
     return _speak_and_return(answer)
 
