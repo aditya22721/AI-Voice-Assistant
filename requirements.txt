@@ -1,8 +1,16 @@
-# requirements.txt
+# Core requirements
 google-generativeai
 Pillow
 geocoder
 geopy
 requests
 pyjokes
-wik
+wikipedia
+speechrecognition
+pyttsx3
+pyaudio
+python-dotenv
+
+# Optional alert services (install only if needed)
+# twilio  # For SMS alerts
+sendgrid  
